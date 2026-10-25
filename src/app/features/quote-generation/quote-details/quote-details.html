@@ -1,0 +1,39 @@
+<section class="module-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Insurance Management</p>
+      <h1>Quote Details</h1>
+      <p class="page-description">Build this screen according to the BRD and the shared UI reference.</p>
+    </div>
+    <button type="button" class="primary-button" (click)="showForm = !showForm">
+      {{ showForm ? 'Close' : 'Add New' }}
+    </button>
+  </header>
+
+  <div class="filter-row">
+    <input type="search" placeholder="Search quote details..." aria-label="Search quote details" />
+    <select aria-label="Filter by status">
+      <option value="">All statuses</option>
+      <option value="pending">Pending</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+    </select>
+  </div>
+
+  <form class="form-panel" *ngIf="showForm" (submit)="$event.preventDefault()">
+    <h2>Create / Update</h2>
+    <p>Replace these starter controls with the fields required by the BRD.</p>
+    <label>Reference / Name <input type="text" placeholder="Enter value" /></label>
+    <label>Notes <textarea rows="3" placeholder="Enter details"></textarea></label>
+    <button class="primary-button" type="submit">Save</button>
+  </form>
+
+  <div class="table-panel">
+    <table>
+      <thead><tr><th>Reference</th><th>Name / Description</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td colspan="4" class="empty-state">Connect this screen to its service and replace this sample row with API data.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>

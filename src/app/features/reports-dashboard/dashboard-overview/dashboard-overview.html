@@ -1,0 +1,283 @@
+
+<section class="reports-page dashboard-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">INSURANCE MANAGEMENT · MODULE 15</p>
+      <h1>
+        {{ role === 'admin' ? 'Dashboard Overview' : role === 'agent' ? 'My Work Dashboard' : 'My Insurance Dashboard' }}
+      </h1>
+      <p class="subtitle">
+        {{ role === 'admin'
+            ? 'Monitor your organisation’s insurance portfolio.'
+            : role === 'agent'
+              ? 'Track your customers, policies and performance.'
+              : 'View your personal policies, premiums and claims.' }}
+      </p>
+    </div>
+    <a class="primary-action" [routerLink]="['/', role, 'reports']">
+      View reports <span>→</span>
+    </a>
+  </header>
+
+  <div *ngIf="loading" class="notice">Loading dashboard data…</div>
+  <div *ngIf="errorMessage" class="notice error-notice">{{ errorMessage }}</div>
+
+  <ng-container *ngIf="summary as s">
+    <div class="kpi-grid">
+
+      <article class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-icon blue">▣</span>
+          <span class="kpi-label">
+            {{ role === 'admin' ? 'Total customers' : role === 'agent' ? 'My customers' : 'My policies' }}
+          </span>
+        </div>
+        <strong>{{ role === 'customer' ? s.totalPolicies : s.totalCustomers | number }}</strong>
+        <small>
+          {{ role === 'admin' ? 'Registered customers' : role === 'agent' ? 'Customers assigned to you' : 'Policies in your account' }}
+        </small>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-icon purple">▤</span>
+          <span class="kpi-label">
+            {{ role === 'admin' ? 'Total policies' : 'Active policies' }}
+          </span>
+        </div>
+        <strong>{{ role === 'admin' ? s.totalPolicies : s.activePolicies | number }}</strong>
+        <small>
+          {{ role === 'admin' ? (s.activePolicies + ' currently active') : (s.activePolicies + ' active policies') }}
+        </small>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-icon green">₹</span>
+          <span class="kpi-label">
+            {{ role === 'customer' ? 'Premiums paid' : 'Premium collected' }}
+          </span>
+        </div>
+        <strong>{{ formatMoney(s.premiumCollected) }}</strong>
+        <small>
+          {{ role === 'customer' ? 'Recorded premium payments (demo)' : role === 'agent' ? 'Premiums attributed to you (demo)' : 'Collected premiums' }}
+        </small>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-icon amber">◷</span>
+          <span class="kpi-label">
+            {{ role === 'customer' ? 'Premium due' : 'Pending premium' }}
+          </span>
+        </div>
+        <strong>{{ formatMoney(s.pendingPremium) }}</strong>
+        <small>
+          {{ role === 'customer' ? 'Pending payment amount' : (s.renewalDue + ' renewals due') }}
+        </small>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-icon red">⚑</span>
+          <span class="kpi-label">
+            {{ role === 'admin' ? 'Claims registered' : 'My claims' }}
+          </span>
+        </div>
+        <strong>{{ s.claimsRegistered | number }}</strong>
+        <small>
+          {{ s.claimsSettled }} settled · {{ s.claimsRejected }} rejected
+        </small>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-icon rose">₹</span>
+          <span class="kpi-label">
+            {{ role === 'customer' ? 'My outstanding claims' : 'Outstanding claims' }}
+          </span>
+        </div>
+        <strong>{{ formatMoney(s.outstandingClaims) }}</strong>
+        <small>
+          {{ role === 'customer' ? 'Outstanding claim amount (demo)' : 'Claim amount outstanding' }}
+        </small>
+      </article>
+
+    </div>
+
+    <div class="analytics-grid" *ngIf="charts as c">
+
+      <article class="panel trend-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>
+              {{ role === 'customer' ? 'My premium history' : role === 'agent' ? 'My premium collection trend' : 'Premium collection trend' }}
+            </h2>
+            <p>Monthly premium values</p>
+          </div>
+          <span class="chart-chip">Monthly</span>
+        </div>
+
+        <div class="bar-chart">
+          <div class="bar-column" *ngFor="let point of c.premiumTrend; trackBy: trackByLabel">
+            <span class="bar-value">{{ formatMoney(point.value) }}</span>
+            <div class="bar-track">
+              <div class="bar-fill blue-fill"
+                   [style.height]="barHeight(point.value, c.premiumTrend)">
+              </div>
+            </div>
+            <span class="bar-label">{{ point.label }}</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel trend-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>
+              {{ role === 'customer' ? 'My policy activity' : role === 'agent' ? 'My policy sales' : 'Policy sales' }}
+            </h2>
+            <p>
+              {{ role === 'customer' ? 'Illustrative monthly policy activity' : 'Monthly policy count' }}
+            </p>
+          </div>
+          <span class="chart-chip">Policies</span>
+        </div>
+
+        <div class="bar-chart">
+          <div class="bar-column" *ngFor="let point of c.policySales; trackBy: trackByLabel">
+            <span class="bar-value">{{ point.value }}</span>
+            <div class="bar-track">
+              <div class="bar-fill purple-fill"
+                   [style.height]="barHeight(point.value, c.policySales)">
+              </div>
+            </div>
+            <span class="bar-label">{{ point.label }}</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>
+              {{ role === 'admin' ? 'Policies by product' : 'My policies by product' }}
+            </h2>
+            <p>Distribution across products</p>
+          </div>
+        </div>
+
+        <div class="horizontal-chart">
+          <div class="horizontal-row"
+               *ngFor="let point of c.policiesByProduct; let i = index; trackBy: trackByLabel">
+            <div class="horizontal-label">
+              <span>{{ point.label }}</span>
+              <strong>{{ point.value }}</strong>
+            </div>
+            <div class="horizontal-track">
+              <div class="horizontal-fill"
+                   [class]="'product-fill fill-' + i"
+                   [style.width.%]="point.value / maxValue(c.policiesByProduct) * 100">
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>
+              {{ role === 'customer' ? 'My claim status' : role === 'agent' ? 'My claims by status' : 'Claims by status' }}
+            </h2>
+            <p>Current claims breakdown</p>
+          </div>
+        </div>
+
+        <div class="status-list">
+          <div class="status-row" *ngFor="let point of c.claimsByStatus; trackBy: trackByLabel">
+            <span class="status-dot"
+                  [class]="'status-dot status-' + point.label.toLowerCase()">
+            </span>
+            <span>{{ point.label | titlecase }}</span>
+            <strong>{{ point.value }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel agent-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>
+              {{ role === 'customer' ? 'My insurance agent' : role === 'agent' ? 'My performance' : 'Agent performance' }}
+            </h2>
+            <p>
+              {{ role === 'customer' ? 'Your assigned insurance agent' : role === 'agent' ? 'Policies attributed to you' : 'Policies attributed to each agent' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="horizontal-chart">
+          <div class="horizontal-row" *ngFor="let point of c.agentPerformance; trackBy: trackByLabel">
+            <div class="horizontal-label">
+              <span>{{ point.label }}</span>
+              <strong>{{ point.value }}</strong>
+            </div>
+            <div class="horizontal-track">
+              <div class="horizontal-fill green-fill"
+                   [style.width.%]="point.value / maxValue(c.agentPerformance) * 100">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="top-agent" *ngIf="role !== 'customer'">
+          <span>{{ role === 'agent' ? 'Your performance label' : 'Top performing agent' }}</span>
+          <strong>{{ s.topPerformingAgent }}</strong>
+        </div>
+        <div class="top-agent" *ngIf="role === 'customer'">
+          <span>Assigned agent</span>
+          <strong>{{ s.topPerformingAgent }}</strong>
+        </div>
+      </article>
+
+      <article class="panel financial-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>
+              {{ role === 'customer' ? 'My financial summary' : 'Financial snapshot' }}
+            </h2>
+            <p>Summary indicators</p>
+          </div>
+        </div>
+
+        <div class="financial-row">
+          <span>{{ role === 'customer' ? 'Premium amount recorded' : 'Monthly revenue' }}</span>
+          <strong>{{ formatMoney(role === 'customer' ? s.premiumCollected : s.monthlyRevenue) }}</strong>
+        </div>
+
+        <div class="financial-row" *ngIf="role !== 'customer'">
+          <span>Loss ratio</span>
+          <strong [class.warning-text]="s.lossRatioPercent > 100">
+            {{ s.lossRatioPercent | number:'1.2-2' }}%
+          </strong>
+        </div>
+
+        <div class="financial-row">
+          <span>{{ role === 'customer' ? 'My claims approved' : 'Claims approved' }}</span>
+          <strong>{{ s.claimsApproved }}</strong>
+        </div>
+
+        <div class="financial-row">
+          <span>{{ role === 'customer' ? 'My claims settled' : 'Claims settled' }}</span>
+          <strong>{{ s.claimsSettled }}</strong>
+        </div>
+      </article>
+
+    </div>
+  </ng-container>
+
+  <p class="data-note" *ngIf="summary?.dataSource === 'DUMMY_DATA'">
+    Demo dataset · Figures are illustrative sample values and are not live, identity-verified records.
+  </p>
+</section>

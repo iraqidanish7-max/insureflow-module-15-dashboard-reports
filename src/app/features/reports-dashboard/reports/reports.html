@@ -1,0 +1,1003 @@
+<section class="reports-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">INSURANCE MANAGEMENT · MODULE 15</p>
+      <h1>{{ role === 'admin' ? 'Reports & Analytics' : role === 'agent' ? 'My Work Reports' : 'My Insurance Reports' }}</h1>
+      <p class="subtitle">{{ role === 'admin' ? 'Explore organisation-wide reports, filter results and export data.' : role === 'agent' ? 'Review your assigned customers, policies, premiums and performance.' : 'Review your policies, premium payments and claims.' }}</p>
+    </div>
+    <div class="export-actions" *ngIf="role === 'admin'"><button type="button" (click)="export('csv')" [disabled]="exporting">Export
+        CSV</button><button type="button" (click)="export('excel')" [disabled]="exporting">Export Excel</button><button
+        type="button" class="primary-action" (click)="export('pdf')" [disabled]="exporting">Export PDF</button></div>
+  
+</header>
+  
+<div class="report-tabs">
+  <button
+    type="button"
+    [class.active-tab]="activeReport === 'policies'"
+    (click)="selectReport('policies')">
+    Policy report
+  </button>
+
+  <button
+    *ngIf="role === 'admin' || role === 'agent'"
+    type="button"
+    [class.active-tab]="activeReport === 'customers'"
+    (click)="selectReport('customers')">
+    Customer
+  </button>
+
+  <button
+    type="button"
+    [class.active-tab]="activeReport === 'premiums'"
+    (click)="selectReport('premiums')">
+    Premium
+  </button>
+
+  <button
+    type="button"
+    [class.active-tab]="activeReport === 'claims'"
+    (click)="selectReport('claims')">
+    Claims
+  </button>
+
+  <button
+    *ngIf="role === 'admin'"
+    type="button"
+    [class.active-tab]="activeReport === 'underwriting'"
+    (click)="selectReport('underwriting')">
+    Underwriting
+  </button>
+
+  <button
+    *ngIf="role === 'admin' || role === 'agent'"
+    type="button"
+    [class.active-tab]="activeReport === 'agents'"
+    (click)="selectReport('agents')">
+    Agents
+  </button>
+
+  <button
+    type="button"
+    [class.active-tab]="activeReport === 'financial'"
+    (click)="selectReport('financial')">
+    Financial
+  </button>
+  
+</div>
+
+<ng-container *ngIf="activeReport === 'policies'">
+  <section class="report-summary">
+    <div><span>Policies in dataset</span><strong>{{ policies.length }}</strong></div>
+    <div><span>Matching records</span><strong>{{ filteredPolicies.length }}</strong></div>
+    <div><span>Active policies</span><strong>{{ countActive() }}</strong></div>
+    <div><span>Renewal due</span><strong>{{ countRenewals() }}</strong></div>
+  </section>
+  <section class="filter-panel">
+    <div class="filter-title">
+      <div>
+        <h2>Policy report</h2>
+        <p>Filter by date, status, product or keyword.</p>
+      </div><button type="button" class="text-button" (click)="clearFilters()">Reset filters</button>
+    </div>
+    <div class="filters"><label class="search-filter"><span>⌕</span><input [(ngModel)]="searchText"
+          placeholder="Search policy, customer, branch…" /></label><label>From date<input type="date"
+          [(ngModel)]="fromDate" /></label><label>To date<input type="date"
+          [(ngModel)]="toDate" /></label><label>Status<select [(ngModel)]="statusFilter">
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select></label><label>Product<select [(ngModel)]="productFilter">
+          <option value="All">All products</option>
+          <option *ngFor="let product of products" [value]="product">{{ product }}</option>
+        </select></label></div>
+  </section>
+  <div *ngIf="loading" class="loading-state">Loading policy report…</div>
+  <div *ngIf="exportMessage" class="report-alert">{{ exportMessage }}</div>
+  <section class="table-panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Policy number</th>
+            <th>Customer ID</th>
+            <th>Product</th>
+            <th>Branch</th>
+            <th>Issue date</th>
+            <th>Premium</th>
+            <th>Status</th>
+            <th>Renewal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let policy of filteredPolicies">
+            <td class="policy-number">{{ policy.policyNumber }}</td>
+            <td>{{ policy.customerId }}</td>
+            <td>{{ policy.product }}</td>
+            <td>{{ policy.branch }}</td>
+            <td>{{ policy.issueDate | date:'dd MMM yyyy' }}</td>
+            <td class="amount">{{ formatMoney(policy.premium) }}</td>
+            <td><span class="status-pill"
+                [class]="'status-pill status-' + policy.status.toLowerCase().replace(' ', '-')">{{ policy.status
+                }}</span></td>
+            <td><span [class.renewal-yes]="policy.renewalDue">{{ policy.renewalDue ? 'Due' : '—' }}</span></td>
+          </tr>
+          <tr *ngIf="filteredPolicies.length === 0">
+            <td colspan="8" class="empty-state">No policies match the selected filters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <footer class="table-footer"><span>Showing {{ filteredPolicies.length }} of {{ policies.length }} policy
+        records</span><span>{{ role === 'admin' ? 'Source: reporting API' : 'Source: demo data' }}</span></footer>
+  </section>
+  <p class="data-note">{{ role === 'admin' ? 'Reporting API dataset · policy report records are supplied by the reporting service.' : 'Demo dataset · illustrative role-specific policy records; not live personal data.' }}</p>
+  </ng-container>
+  
+<!-- Shared error message -->
+<div *ngIf="errorMessage" class="report-alert">
+  {{ errorMessage }}
+  <button
+    type="button"
+    *ngIf="activeReport === 'customers'"
+    (click)="loadCustomers()">
+    Retry
+  </button>
+  <button
+    type="button"
+    *ngIf="activeReport === 'policies'"
+    (click)="loadPolicies()">
+    Retry
+  </button>
+
+  <button
+  type="button"
+  *ngIf="activeReport === 'claims'"
+  (click)="loadClaims()">
+  Retry
+</button>
+
+<button
+  type="button"
+  *ngIf="activeReport === 'underwriting'"
+  (click)="loadUnderwriting()">
+  Retry
+</button>
+
+<button
+  type="button"
+  *ngIf="activeReport === 'agents'"
+  (click)="loadAgents()">
+  Retry
+</button>
+
+<button
+  type="button"
+  *ngIf="activeReport === 'financial'"
+  (click)="loadFinancial()">
+  Retry
+</button>
+</div>
+
+
+<!-- Customer report -->
+<ng-container *ngIf="activeReport === 'customers'">
+
+  <section class="report-summary">
+    <div>
+      <span>Customers in dataset</span>
+      <strong>{{ customers.length }}</strong>
+    </div>
+    <div>
+      <span>Matching customers</span>
+      <strong>{{ filteredCustomers.length }}</strong>
+    </div>
+    <div>
+      <span>Active customers</span>
+      <strong>{{ customers.filter(c => c.status === 'Active').length }}</strong>
+    </div>
+    <div>
+      <span>Products represented</span>
+      <strong>{{ customerProductCount }}</strong>
+    </div>
+  </section>
+
+  <section class="filter-panel">
+    <div class="filter-title">
+      <div>
+        <h2>Customer report</h2>
+        <p>Search customers by name, ID, city, product, agent or branch.</p>
+      </div>
+      <button
+        type="button"
+        class="text-button"
+        (click)="clearCustomerFilters()">
+        Reset filters
+      </button>
+    </div>
+
+    <div class="filters report-filter-grid">
+      <label class="search-filter">
+        <span>⌕</span>
+        <input [(ngModel)]="customerSearchText" placeholder="Search customer, city, agent..." />
+      </label>
+      <label>From date<input type="date" [(ngModel)]="customerFromDate" /></label>
+      <label>To date<input type="date" [(ngModel)]="customerToDate" /></label>
+      <label>Status
+        <select [(ngModel)]="customerStatusFilter">
+          <option value="All">All statuses</option>
+          <option *ngFor="let status of customerStatuses" [value]="status">{{ status }}</option>
+        </select>
+      </label>
+      <label>Product
+        <select [(ngModel)]="customerProductFilter">
+          <option value="All">All products</option>
+          <option *ngFor="let product of customerProducts" [value]="product">{{ product }}</option>
+        </select>
+      </label>
+      <label>Branch
+        <select [(ngModel)]="customerBranchFilter">
+          <option value="All">All branches</option>
+          <option *ngFor="let branch of customerBranches" [value]="branch">{{ branch }}</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="loading-state">
+    Loading customer report…
+  </div>
+
+  <section class="table-panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer ID</th>
+            <th>Customer name</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Product</th>
+            <th>Status</th>
+            <th>Agent</th>
+            <th>Branch</th>
+            <th>Registration date</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let customer of filteredCustomers">
+            <td>{{ customer.customerId }}</td>
+            <td class="policy-number">{{ customer.customerName }}</td>
+            <td>{{ customer.city }}</td>
+            <td>{{ customer.state }}</td>
+            <td>{{ customer.product }}</td>
+            <td>
+              <span
+                class="status-pill"
+                [class.status-active]="customer.status === 'Active'"
+                [class.status-expired]="customer.status === 'Inactive'"
+                [class.status-pending-payment]="customer.status === 'KYC_PENDING'">
+                {{ customer.status }}
+              </span>
+            </td>
+            <td>{{ customer.agent }}</td>
+            <td>{{ customer.branch }}</td>
+            <td>{{ customer.date | date:'dd MMM yyyy' }}</td>
+          </tr>
+
+          <tr *ngIf="filteredCustomers.length === 0">
+            <td colspan="9" class="empty-state">
+              No customers match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <span>
+        Showing {{ filteredCustomers.length }} of
+        {{ customers.length }} customer records
+      </span>
+      <span>{{ role === 'admin' ? 'Source: reporting API' : 'Source: demo data' }}</span>
+    </footer>
+  </section>
+
+  <p class="data-note">
+    {{ role === 'admin' ? 'Reporting API dataset · customer records are supplied by the reporting service.' : 'Demo dataset · illustrative role-specific customer records.' }}
+  </p>
+
+</ng-container>
+
+<!-- Premium report -->
+<ng-container *ngIf="activeReport === 'premiums'">
+
+  <section class="report-summary">
+    <div>
+      <span>Total payments</span>
+      <strong>{{ premiums.length }}</strong>
+    </div>
+
+    <div>
+      <span>Total payment amount</span>
+      <strong>{{ formatMoney(totalPremiumAmount) }}</strong>
+    </div>
+
+    <div>
+      <span>Successful payments</span>
+      <strong>{{ successfulPayments }}</strong>
+    </div>
+
+    <div>
+      <span>Pending / refund payments</span>
+      <strong>{{ pendingPayments }}</strong>
+    </div>
+  </section>
+
+  <section class="filter-panel">
+    <div class="filter-title">
+      <div>
+        <h2>Premium report</h2>
+        <p>Search payments by ID, policy, agent, branch or status.</p>
+      </div>
+
+      <button
+        type="button"
+        class="text-button"
+        (click)="clearPremiumFilters()">
+        Reset filters
+      </button>
+    </div>
+
+    <div class="filters report-filter-grid">
+      <label class="search-filter">
+        <span>⌕</span>
+        <input type="text" [(ngModel)]="premiumSearchText" placeholder="Search payment, policy, agent..." />
+      </label>
+      <label>From date<input type="date" [(ngModel)]="premiumFromDate" /></label>
+      <label>To date<input type="date" [(ngModel)]="premiumToDate" /></label>
+      <label>Status
+        <select [(ngModel)]="premiumStatusFilter">
+          <option value="All">All statuses</option>
+          <option *ngFor="let status of premiumStatuses" [value]="status">{{ status.replace('_', ' ') }}</option>
+        </select>
+      </label>
+      <label>Agent
+        <select [(ngModel)]="premiumAgentFilter">
+          <option value="All">All agents</option>
+          <option *ngFor="let agent of premiumAgents" [value]="agent">{{ agent }}</option>
+        </select>
+      </label>
+      <label>Branch
+        <select [(ngModel)]="premiumBranchFilter">
+          <option value="All">All branches</option>
+          <option *ngFor="let branch of premiumBranches" [value]="branch">{{ branch }}</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="loading-state">
+    Loading premium report...
+  </div>
+
+  <section class="table-panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Payment ID</th>
+            <th>Policy number</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Payment date</th>
+            <th>Agent</th>
+            <th>Branch</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let payment of filteredPremiums">
+            <td>{{ payment.paymentId }}</td>
+            <td class="policy-number">{{ payment.policyNumber }}</td>
+            <td class="amount">{{ formatMoney(payment.amount) }}</td>
+
+            <td>
+              <span
+                class="status-pill"
+                [class.status-active]="payment.status === 'SUCCESS'"
+                [class.status-pending-payment]="
+                  payment.status === 'PENDING' ||
+                  payment.status === 'REFUND_PENDING'
+                ">
+                {{ payment.status.replace('_', ' ') }}
+              </span>
+            </td>
+
+            <td>{{ payment.paymentDate | date:'dd MMM yyyy' }}</td>
+            <td>{{ payment.agent }}</td>
+            <td>{{ payment.branch }}</td>
+          </tr>
+
+          <tr *ngIf="filteredPremiums.length === 0">
+            <td colspan="7" class="empty-state">
+              No payments match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <span>
+        Showing {{ filteredPremiums.length }} of {{ premiums.length }}
+        payment records
+      </span>
+      <span>{{ role === 'admin' ? 'Source: reporting API' : 'Source: demo data' }}</span>
+    </footer>
+  </section>
+
+  <p class="data-note">
+    {{ role === 'admin' ? 'Reporting API dataset · premium payment records are supplied by the reporting service.' : 'Demo dataset · illustrative role-specific payment records.' }}
+  </p>
+
+</ng-container>
+
+<!-- Claims report -->
+<ng-container *ngIf="activeReport === 'claims'">
+
+  <section class="report-summary">
+    <div>
+      <span>Total claims</span>
+      <strong>{{ claims.length }}</strong>
+    </div>
+
+    <div>
+      <span>Total claim amount</span>
+      <strong>{{ formatMoney(totalClaimAmount) }}</strong>
+    </div>
+
+    <div>
+      <span>Settled claims</span>
+      <strong>{{ settledClaims }}</strong>
+    </div>
+
+    <div>
+      <span>Requiring investigation</span>
+      <strong>{{ investigationClaims }}</strong>
+    </div>
+  </section>
+
+  <section class="filter-panel">
+    <div class="filter-title">
+      <div>
+        <h2>Claims report</h2>
+        <p>Search claims by claim ID, policy, status, branch or investigation.</p>
+      </div>
+
+      <button
+        type="button"
+        class="text-button"
+        (click)="clearClaimFilters()">
+        Reset filters
+      </button>
+    </div>
+
+    <div class="filters report-filter-grid">
+      <label class="search-filter">
+        <span>⌕</span>
+        <input type="text" [(ngModel)]="claimSearchText" placeholder="Search claim, policy, branch..." />
+      </label>
+      <label>From date<input type="date" [(ngModel)]="claimFromDate" /></label>
+      <label>To date<input type="date" [(ngModel)]="claimToDate" /></label>
+      <label>Status
+        <select [(ngModel)]="claimStatusFilter">
+          <option value="All">All statuses</option>
+          <option *ngFor="let status of claimStatuses" [value]="status">{{ status }}</option>
+        </select>
+      </label>
+      <label>Branch
+        <select [(ngModel)]="claimBranchFilter">
+          <option value="All">All branches</option>
+          <option *ngFor="let branch of claimBranches" [value]="branch">{{ branch }}</option>
+        </select>
+      </label>
+      <label>Investigation
+        <select [(ngModel)]="claimInvestigationFilter">
+          <option value="All">All</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="loading-state">
+    Loading claims report...
+  </div>
+
+  <section class="table-panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Claim ID</th>
+            <th>Policy number</th>
+            <th>Claim amount</th>
+            <th>Status</th>
+            <th>Claim date</th>
+            <th>Branch</th>
+            <th>Investigation</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let claim of filteredClaims">
+            <td>{{ claim.claimId }}</td>
+
+            <td class="policy-number">
+              {{ claim.policyNumber }}
+            </td>
+
+            <td class="amount">
+              {{ formatMoney(claim.amount) }}
+            </td>
+
+            <td>
+              <span
+                class="status-pill"
+                [class.status-active]="claim.status === 'SETTLED' || claim.status === 'APPROVED'"
+                [class.status-pending-payment]="claim.status === 'PENDING'"
+                [class.status-expired]="claim.status === 'REJECTED'">
+                {{ claim.status }}
+              </span>
+            </td>
+
+            <td>{{ claim.claimDate | date:'dd MMM yyyy' }}</td>
+
+            <td>{{ claim.branch }}</td>
+
+            <td>
+              <span
+                class="status-pill"
+                [class.status-pending-payment]="claim.investigation === 'Yes'"
+                [class.status-active]="claim.investigation === 'No'">
+                {{ claim.investigation }}
+              </span>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredClaims.length === 0">
+            <td colspan="7" class="empty-state">
+              No claims match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <span>
+        Showing {{ filteredClaims.length }} of {{ claims.length }}
+        claim records
+      </span>
+      <span>{{ role === 'admin' ? 'Source: reporting API' : 'Source: demo data' }}</span>
+    </footer>
+  </section>
+
+  <p class="data-note">
+    {{ role === 'admin' ? 'Reporting API dataset · claim records are supplied by the reporting service.' : 'Demo dataset · illustrative role-specific claim records.' }}
+  </p>
+
+</ng-container>
+
+<!-- Underwriting report -->
+<ng-container *ngIf="activeReport === 'underwriting' && role === 'admin'">
+
+  <section class="report-summary">
+    <div>
+      <span>Total cases</span>
+      <strong>{{ underwritingCases.length }}</strong>
+    </div>
+
+    <div>
+      <span>Approved cases</span>
+      <strong>{{ approvedCases }}</strong>
+    </div>
+
+    <div>
+      <span>Pending cases</span>
+      <strong>{{ pendingCases }}</strong>
+    </div>
+
+    <div>
+      <span>High-risk cases</span>
+      <strong>{{ highRiskCases }}</strong>
+    </div>
+  </section>
+
+  <section class="filter-panel">
+    <div class="filter-title">
+      <div>
+        <h2>Underwriting report</h2>
+        <p>Search cases by case ID, customer, status, risk or underwriter.</p>
+      </div>
+
+      <button
+        type="button"
+        class="text-button"
+        (click)="clearUnderwritingFilters()">
+        Reset filters
+      </button>
+    </div>
+
+    <div class="filters report-filter-grid">
+      <label class="search-filter">
+        <span>⌕</span>
+        <input type="text" [(ngModel)]="underwritingSearchText" placeholder="Search case, customer, risk..." />
+      </label>
+      <label>From date<input type="date" [(ngModel)]="underwritingFromDate" /></label>
+      <label>To date<input type="date" [(ngModel)]="underwritingToDate" /></label>
+      <label>Status
+        <select [(ngModel)]="underwritingStatusFilter">
+          <option value="All">All statuses</option>
+          <option *ngFor="let status of underwritingStatuses" [value]="status">{{ status.replace('_', ' ') }}</option>
+        </select>
+      </label>
+      <label>Risk
+        <select [(ngModel)]="underwritingRiskFilter">
+          <option value="All">All risks</option>
+          <option *ngFor="let risk of underwritingRisks" [value]="risk">{{ risk }}</option>
+        </select>
+      </label>
+      <label>Underwriter
+        <select [(ngModel)]="underwritingUnderwriterFilter">
+          <option value="All">All underwriters</option>
+          <option *ngFor="let underwriter of underwritingUnderwriters" [value]="underwriter">{{ underwriter }}</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="loading-state">
+    Loading underwriting report...
+  </div>
+
+  <section class="table-panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Case ID</th>
+            <th>Customer ID</th>
+            <th>Status</th>
+            <th>Risk</th>
+            <th>Underwriter</th>
+            <th>Case date</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of filteredUnderwriting">
+            <td>{{ item.caseId }}</td>
+            <td>{{ item.customerId }}</td>
+
+            <td>
+              <span
+                class="status-pill"
+                [class.status-active]="item.status === 'APPROVED'"
+                [class.status-expired]="item.status === 'REJECTED'"
+                [class.status-pending-payment]="
+                  item.status === 'PENDING' ||
+                  item.status === 'MEDICAL_PENDING'
+                ">
+                {{ item.status.replace('_', ' ') }}
+              </span>
+            </td>
+
+            <td>
+              <span
+                class="status-pill"
+                [class.status-active]="item.risk === 'LOW'"
+                [class.status-pending-payment]="item.risk === 'MEDIUM'"
+                [class.status-expired]="item.risk === 'HIGH'">
+                {{ item.risk }}
+              </span>
+            </td>
+
+            <td>{{ item.underwriter }}</td>
+            <td>{{ item.caseDate | date:'dd MMM yyyy' }}</td>
+          </tr>
+
+          <tr *ngIf="filteredUnderwriting.length === 0">
+            <td colspan="6" class="empty-state">
+              No underwriting cases match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <span>
+        Showing {{ filteredUnderwriting.length }} of
+        {{ underwritingCases.length }} underwriting cases
+      </span>
+      <span>{{ role === 'admin' ? 'Source: reporting API' : 'Source: demo data' }}</span>
+    </footer>
+  </section>
+
+  <p class="data-note">
+    {{ role === 'admin' ? 'Reporting API dataset · underwriting cases are supplied by the reporting service.' : 'Demo dataset · illustrative records.' }}
+  </p>
+
+</ng-container>
+
+<!-- Agents report -->
+<ng-container *ngIf="activeReport === 'agents' && (role === 'admin' || role === 'agent')">
+
+  <section class="report-summary">
+    <div>
+      <span>Total agents</span>
+      <strong>{{ agents.length }}</strong>
+    </div>
+
+    <div>
+      <span>Total sales</span>
+      <strong>{{ totalAgentSales }}</strong>
+    </div>
+
+    <div>
+      <span>Premium collected</span>
+      <strong>{{ formatMoney(totalAgentPremium) }}</strong>
+    </div>
+
+    <div>
+      <span>Total commission</span>
+      <strong>{{ formatMoney(totalAgentCommission) }}</strong>
+    </div>
+  </section>
+
+  <section class="filter-panel">
+    <div class="filter-title">
+      <div>
+        <h2>Agents report</h2>
+        <p>Review agent sales, premiums, commissions and active customers.</p>
+      </div>
+
+      <button
+        type="button"
+        class="text-button"
+        (click)="clearAgentFilters()">
+        Reset filters
+      </button>
+    </div>
+
+    <div class="filters report-filter-grid">
+      <label class="search-filter">
+        <span>⌕</span>
+        <input type="text" [(ngModel)]="agentSearchText" placeholder="Search agent or branch..." />
+      </label>
+      <label>Branch
+        <select [(ngModel)]="agentBranchFilter">
+          <option value="All">All branches</option>
+          <option *ngFor="let branch of agentBranches" [value]="branch">{{ branch }}</option>
+        </select>
+      </label>
+      <label>Minimum sales
+        <input type="number" min="0" [(ngModel)]="agentMinSales" placeholder="Any sales" />
+      </label>
+      <label>Minimum premium (₹)
+        <input type="number" min="0" [(ngModel)]="agentMinPremium" placeholder="Any amount" />
+      </label>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="loading-state">
+    Loading agents report...
+  </div>
+
+  <section class="table-panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Sales</th>
+            <th>Premium collected</th>
+            <th>Active customers</th>
+            <th>Commission</th>
+            <th>Branch</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let agent of filteredAgents">
+            <td class="policy-number">{{ agent.agent }}</td>
+            <td>{{ agent.sales }}</td>
+            <td class="amount">{{ formatMoney(agent.premiumCollected) }}</td>
+            <td>{{ agent.activeCustomers }}</td>
+            <td class="amount">{{ formatMoney(agent.commission) }}</td>
+            <td>{{ agent.branch }}</td>
+          </tr>
+
+          <tr *ngIf="filteredAgents.length === 0">
+            <td colspan="6" class="empty-state">
+              No agents match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <span>
+        Showing {{ filteredAgents.length }} of {{ agents.length }} agent records
+      </span>
+      <span>{{ role === 'admin' ? 'Source: reporting API' : 'Source: demo data' }}</span>
+    </footer>
+  </section>
+
+  <p class="data-note">
+    {{ role === 'admin' ? 'Reporting API dataset · agent records are supplied by the reporting service.' : 'Demo dataset · illustrative agent performance.' }}
+  </p>
+
+</ng-container>
+
+<!-- Financial report -->
+<ng-container *ngIf="activeReport === 'financial'">
+
+  <section class="report-summary">
+    <div>
+      <span>Premium payments</span>
+      <strong>{{ financialPayments.length }}</strong>
+    </div>
+
+    <div>
+      <span>Premium amount</span>
+      <strong>{{ formatMoney(totalFinancialPremium) }}</strong>
+    </div>
+
+    <div>
+      <span>Total claims</span>
+      <strong>{{ financialClaims.length }}</strong>
+    </div>
+
+    <div>
+      <span>Claim amount</span>
+      <strong>{{ formatMoney(totalFinancialClaimAmount) }}</strong>
+    </div>
+  </section>
+
+  <section class="filter-panel">
+    <div class="filter-title">
+      <div>
+        <h2>Financial report</h2>
+        <p>Review premium payments and claims in one report.</p>
+      </div>
+
+      <button
+        type="button"
+        class="text-button"
+        (click)="clearFinancialFilters()">
+        Reset filters
+      </button>
+    </div>
+
+    <div class="filters report-filter-grid">
+      <label class="search-filter">
+        <span>⌕</span>
+        <input type="text" [(ngModel)]="financialSearchText" placeholder="Search payment, claim, policy, branch..." />
+      </label>
+      <label>From date<input type="date" [(ngModel)]="financialFromDate" /></label>
+      <label>To date<input type="date" [(ngModel)]="financialToDate" /></label>
+      <label>Record type
+        <select [(ngModel)]="financialTypeFilter">
+          <option value="All">All records</option>
+          <option value="Premium">Premium</option>
+          <option value="Claim">Claim</option>
+        </select>
+      </label>
+      <label>Status
+        <select [(ngModel)]="financialStatusFilter">
+          <option value="All">All statuses</option>
+          <option *ngFor="let status of financialStatuses" [value]="status">{{ status.replace('_', ' ') }}</option>
+        </select>
+      </label>
+      <label>Branch
+        <select [(ngModel)]="financialBranchFilter">
+          <option value="All">All branches</option>
+          <option *ngFor="let branch of financialBranches" [value]="branch">{{ branch }}</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="loading-state">
+    Loading financial report...
+  </div>
+
+  <section class="table-panel" *ngIf="!loading">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Record type</th>
+            <th>Record ID</th>
+            <th>Policy number</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Agent</th>
+            <th>Branch</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let record of filteredFinancialRecords">
+            <td>
+              {{ record.paymentId !== undefined ? 'Premium' : 'Claim' }}
+            </td>
+
+            <td>
+              {{ record.paymentId ?? record.claimId }}
+            </td>
+
+            <td class="policy-number">
+              {{ record.policyNumber }}
+            </td>
+
+            <td class="amount">
+              {{ formatMoney(record.amount) }}
+            </td>
+
+            <td>
+              <span
+                class="status-pill"
+                [class.status-active]="
+                  record.status === 'SUCCESS' ||
+                  record.status === 'SETTLED' ||
+                  record.status === 'APPROVED'
+                "
+                [class.status-pending-payment]="
+                  record.status === 'PENDING' ||
+                  record.status === 'REFUND_PENDING'
+                "
+                [class.status-expired]="record.status === 'REJECTED'">
+                {{ record.status.replace('_', ' ') }}
+              </span>
+            </td>
+
+            <td>
+              {{ (record.paymentDate || record.claimDate) | date:'dd MMM yyyy' }}
+            </td>
+
+            <td>{{ record.agent || '—' }}</td>
+            <td>{{ record.branch }}</td>
+          </tr>
+
+          <tr *ngIf="filteredFinancialRecords.length === 0">
+            <td colspan="8" class="empty-state">
+              No financial records match your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <span>
+        Showing {{ filteredFinancialRecords.length }} of
+        {{ financialRecords.length }} financial records
+      </span>
+      <span>{{ role === 'admin' ? 'Source: reporting API' : 'Source: demo data' }}</span>
+    </footer>
+  </section>
+
+  <p class="data-note">
+    {{ role === 'admin' ? 'Reporting API dataset · financial records are supplied by the reporting service.' : 'Demo dataset · illustrative role-specific financial records.' }}
+  </p>
+
+</ng-container>
+
+
+</section>

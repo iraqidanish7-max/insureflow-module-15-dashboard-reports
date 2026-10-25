@@ -1,0 +1,22 @@
+
+# Dependencies
+node_modules/
+
+# Angular build and cache
+dist/
+.angular/
+coverage/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# IDE and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
