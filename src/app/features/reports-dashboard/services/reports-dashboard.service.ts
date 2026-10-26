@@ -22,7 +22,7 @@ export interface CustomerReport {
 @Injectable({ providedIn: 'root' })
 export class ReportsDashboardService {
   // Local development URL. For AWS, replace this with the deployed reporting API URL.
-  private readonly baseUrl = 'http://localhost:8015/api/v1';
+  private readonly baseUrl = 'http://3.108.54.181:8015/api/v1';
 
   constructor(private readonly http: HttpClient) {}
 
